@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS Warung Makan</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="print.css" media="print">
+  <link rel="manifest" href="manifest.json">
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header>
+    <h1>POS Warung Makan</h1>
+    <nav>
+      <button onclick="showTab('kasir')">Kasir</button>
+      <button onclick="showTab('laporan')">Laporan</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="kasir" class="tab active">
+      <h2>Transaksi</h2>
+      <form id="transaksi-form">
+        <input type="text" id="namaBarang" placeholder="Nama Barang" required>
+        <input type="number" id="hargaBarang" placeholder="Harga" required>
+        <input type="number" id="qtyBarang" placeholder="Qty" value="1" required>
+        <input type="number" id="ppnBarang" placeholder="PPN (%)" value="0">
+        <button type="submit">Tambah</button>
+      </form>
+
+      <table id="tabel-transaksi">
+        <thead>
+          <tr><th>Nama</th><th>Qty</th><th>Harga</th><th>PPN</th><th>Total</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="summary">
+        <p>Subtotal: <span id="subtotal">0</span></p>
+        <p>Total PPN: <span id="totalPpn">0</span></p>
+        <p><b>Total: <span id="grandTotal">0</span></b></p>
+      </div>
+      <button onclick="simpanTransaksi()">Simpan & Cetak Struk</button>
+
+      <div id="receipt" class="receipt screen-only"></div>
+    </section>
+
+    <section id="laporan" class="tab">
+      <h2>Laporan Penjualan</h2>
+      <label>Pilih Tanggal: <input type="date" id="filterDate"></label>
+      <button onclick="generateReport()">Tampilkan</button>
+      <button onclick="exportCSV()">Export CSV</button>
+
+      <div id="report-summary"></div>
+      <table id="report-table">
+        <thead>
+          <tr><th>Waktu</th><th>Barang</th><th>Qty</th><th>Harga</th><th>Subtotal</th><th>PPN</th><th>Total</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,13 @@
+@media print {
+  body {
+    width: 58mm;
+    font-family: monospace;
+    font-size: 12px;
+    margin: 0;
+  }
+  .screen-only { display: none; }
+  .receipt { width: 100%; }
+  .receipt-header { text-align: center; margin-bottom: 10px; }
+  .receipt-items td, .receipt-totals td { padding: 2px 0; }
+  .receipt-footer { text-align: center; margin-top: 10px; }
+}
