@@ -7,11 +7,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- State Variables ---
     const state = {
+        // Ditambahkan: State untuk paginasi kasir
+        kasir: { currentPage: 1, itemsPerPage: 12, searchQuery: '' },
         produk: { currentPage: 1, itemsPerPage: 10, searchQuery: '' },
         inventaris: { currentPage: 1, itemsPerPage: 10, searchQuery: '' },
         laporan: { currentPage: 1, itemsPerPage: 10, searchQuery: '' }
     };
-    let cart = [];
+    let cart = [];',////////n'
     let produkListCache = [];
     let pajakPersen = 0;
     let currentKategori = 'semua';
@@ -101,7 +103,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelector('.kategori-btn.active').classList.remove('active');
                 this.classList.add('active');
                 currentKategori = this.getAttribute('data-kategori');
-                loadProdukForKasirList(document.getElementById('search-produk-kasir').value);
+                // Pindah ke halaman 1 setiap ganti kategori
+                loadProdukForKasirList(document.getElementById('search-produk-kasir').value, 1);
             });
         });
     }
@@ -132,12 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Event Listeners Setup ---
     function setupEventListeners() {
-        // PERBAIKAN: Sidebar Toggle untuk Desktop dan Mobile
         const toggleSidebar = () => document.body.classList.toggle('sidebar-open');
         document.getElementById('toggle-sidebar').addEventListener('click', toggleSidebar);
         document.getElementById('toggle-sidebar-mobile').addEventListener('click', toggleSidebar);
 
-        // PERBAIKAN: Menutup sidebar ketika overlay di klik
         const overlay = document.querySelector('.sidebar-overlay');
         if (overlay) {
             overlay.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
@@ -161,7 +162,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.quick-cash-buttons').addEventListener('click', handleQuickCash);
         
         // Search Inputs
-        document.getElementById("search-produk-kasir").addEventListener("input", (e) => loadProdukForKasirList(e.target.value));
+        // Pindah ke halaman 1 setiap kali melakukan pencarian
+        document.getElementById("search-produk-kasir").addEventListener("input", (e) => loadProdukForKasirList(e.target.value, 1));
         document.getElementById("search-produk").addEventListener("input", (e) => { state.produk.searchQuery = e.target.value; renderProdukTable(1); });
         document.getElementById("search-inventaris").addEventListener("input", (e) => { state.inventaris.searchQuery = e.target.value; renderInventarisTable(1); });
         
@@ -209,7 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
         
-        // Close modal when clicking outside
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
@@ -261,9 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('main-header-title').textContent = 
             document.querySelector(`.nav-button[onclick="showTab('${id}')"] .sidebar-text`).textContent;
         
-        if(id === 'kasir') loadProdukForKasirList();
+        if(id === 'kasir') loadProdukForKasirList(undefined, 1);
         
-        // Close sidebar on mobile after selecting a tab
         if (window.innerWidth < 768) {
             document.body.classList.remove('sidebar-open');
         }
@@ -286,12 +286,10 @@ document.addEventListener('DOMContentLoaded', () => {
         performDBAction("inventaris", "readwrite", "get", nama, (existingItem) => {
             let finalJumlah = jumlah;
             if (existingItem) {
-                // PERBAIKAN: Pastikan nilai yang ada adalah angka sebelum menambahkan
                 finalJumlah += (parseFloat(existingItem.jumlah) || 0);
             }
             const dataToStore = { nama, jumlah: finalJumlah, satuan, supplier };
             performDBAction("inventaris", "readwrite", "put", dataToStore, () => {
-                // Simpan riwayat stok masuk
                 const riwayatData = {
                     nama: nama,
                     jenis: 'masuk',
@@ -299,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     satuan: satuan,
                     supplier: supplier,
                     catatan: 'Stok masuk',
-                    tanggal: new Date().toISOString() // Menggunakan ISO string
+                    tanggal: new Date().toISOString()
                 };
                 performDBAction("riwayatStok", "readwrite", "add", riwayatData, () => {
                     showToast(`Stok "${nama}" berhasil diperbarui.`);
@@ -353,14 +351,13 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             
             performDBAction("inventaris", "readwrite", "put", dataToStore, () => {
-                // Simpan riwayat stok keluar
                 const riwayatData = {
                     nama: nama,
                     jenis: 'keluar',
                     jumlah: jumlah,
                     satuan: existingItem.satuan,
                     catatan: catatan || 'Stok keluar',
-                    tanggal: new Date().toISOString() // Menggunakan ISO string
+                    tanggal: new Date().toISOString()
                 };
                 performDBAction("riwayatStok", "readwrite", "add", riwayatData, () => {
                     showToast(`Stok "${nama}" berhasil dikurangi.`);
@@ -387,12 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let tableHTML = `
                     <table>
                         <thead>
-                            <tr>
-                                <th>Tanggal</th>
-                                <th>Jenis</th>
-                                <th>Jumlah</th>
-                                <th>Catatan</th>
-                            </tr>
+                            <tr><th>Tanggal</th><th>Jenis</th><th>Jumlah</th><th>Catatan</th></tr>
                         </thead>
                         <tbody>
                 `;
@@ -473,10 +465,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return alert("Nama produk dan harga harus valid.");
         }
         
-        // Hapus produk lama jika nama berubah
         if (namaAsli !== nama) {
             performDBAction("produk", "readwrite", "delete", namaAsli, () => {
-                // Tambahkan produk baru dengan nama yang diperbarui
                 performDBAction("produk", "readwrite", "put", { nama, kategori, hpp, hargaJual }, () => {
                     showToast(`Produk "${namaAsli}" berhasil diubah menjadi "${nama}".`);
                     document.getElementById('edit-produk-modal').style.display = 'none';
@@ -485,7 +475,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         } else {
-            // Jika nama tidak berubah, cukup update
             performDBAction("produk", "readwrite", "put", { nama, kategori, hpp, hargaJual }, () => {
                 showToast(`Produk "${nama}" berhasil diperbarui.`);
                 document.getElementById('edit-produk-modal').style.display = 'none';
@@ -526,31 +515,37 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===============================================
     // KASIR & TRANSAKSI
     // ===============================================
-    function loadProdukForKasirList(query = '') {
+    function loadProdukForKasirList(query = state.kasir.searchQuery, page = state.kasir.currentPage) {
+        state.kasir.currentPage = page;
+        state.kasir.searchQuery = query;
+
         performDBAction("produk", "readonly", "getAll", null, (allProduk) => {
             produkListCache = allProduk;
             const container = document.getElementById('produk-list-kasir');
             container.innerHTML = '';
             
-            // Filter berdasarkan kategori dan pencarian
             const filtered = allProduk.filter(p => {
                 const matchesKategori = currentKategori === 'semua' || p.kategori === currentKategori;
                 const matchesSearch = p.nama.toLowerCase().includes(query.toLowerCase());
                 return matchesKategori && matchesSearch;
             });
             
-            if(filtered.length === 0) {
+            const startIndex = (page - 1) * state.kasir.itemsPerPage;
+            const paginatedData = filtered.slice(startIndex, startIndex + state.kasir.itemsPerPage);
+
+            if(paginatedData.length === 0) {
                 container.innerHTML = '<p style="text-align: center; width: 100%;">Produk tidak ditemukan.</p>';
-                return;
+            } else {
+                paginatedData.forEach(p => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'produk-item';
+                    itemDiv.innerHTML = `<h4>${p.nama}</h4><div class="price">Rp ${p.hargaJual.toLocaleString('id-ID')}</div>`;
+                    itemDiv.onclick = () => addToCart(p);
+                    container.appendChild(itemDiv);
+                });
             }
-            
-            filtered.forEach(p => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'produk-item';
-                itemDiv.innerHTML = `<h4>${p.nama}</h4><div class="price">Rp ${p.hargaJual.toLocaleString('id-ID')}</div>`;
-                itemDiv.onclick = () => addToCart(p);
-                container.appendChild(itemDiv);
-            });
+
+            renderPaginationControls('kasir-pagination', filtered.length, page, (newPage) => loadProdukForKasirList(query, newPage));
         });
     }
     
@@ -560,11 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (existingItemIndex > -1) {
             cart[existingItemIndex].qty += 1;
         } else {
-            cart.push({ 
-                nama: produk.nama, 
-                hargaJual: produk.hargaJual, 
-                qty: 1 
-            });
+            cart.push({ nama: produk.nama, hargaJual: produk.hargaJual, qty: 1 });
         }
         
         updateCart();
@@ -595,7 +586,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         cart.forEach((item, index) => {
-            const total = item.hargaJual * item.qty;
             const itemElement = document.createElement('div');
             itemElement.className = 'cart-item';
             itemElement.innerHTML = `
@@ -607,9 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="qty-btn" onclick="updateQty(${index}, ${item.qty - 1})">-</button>
                     <span class="qty-display">${item.qty}</span>
                     <button class="qty-btn" onclick="updateQty(${index}, ${item.qty + 1})">+</button>
-                    <button class="delete-btn" onclick="deleteItem(${index})">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <button class="delete-btn" onclick="deleteItem(${index})"><i class="fas fa-trash"></i></button>
                 </div>
             `;
             container.appendChild(itemElement);
@@ -662,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('pajak-persen').style.display = 'none';
         document.getElementById('pajak-row').style.display = 'none';
         pajakPersen = 0;
-        updateCart(); // Ini sudah termasuk updateCartSummary
+        updateCart();
     }
     
     function batalTransaksi() {
@@ -687,7 +675,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const transaksiRecord = {
             id: `trx-${Date.now()}`,
-            // PERBAIKAN: Menyimpan waktu dalam format ISO standar
             waktu: new Date().toISOString(),
             items: cart,
             metode: paymentMethod,
@@ -721,69 +708,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p>No: ${transaksi.id}</p>
                 </div>
                 <table class="receipt-items">
-                    <thead>
-                        <tr>
-                            <th class="item">Item</th>
-                            <th class="total">Total</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th class="item">Item</th><th class="total">Total</th></tr></thead>
                     <tbody>`;
             
             transaksi.items.forEach(i => {
-                receiptContent += `
-                    <tr>
-                        <td class="item">${i.nama}<br><small>${i.qty} x @${i.hargaJual.toLocaleString('id-ID')}</small></td>
-                        <td class="total">${(i.qty * i.hargaJual).toLocaleString('id-ID')}</td>
-                    </tr>`;
+                receiptContent += `<tr><td class="item">${i.nama}<br><small>${i.qty} x @${i.hargaJual.toLocaleString('id-ID')}</small></td><td class="total">${(i.qty * i.hargaJual).toLocaleString('id-ID')}</td></tr>`;
             });
             
             receiptContent += `</tbody><tfoot>`;
             
             if (transaksi.pajak > 0) {
-                receiptContent += `
-                    <tr>
-                        <td class="item">Subtotal</td>
-                        <td class="total">${transaksi.subtotal.toLocaleString('id-ID')}</td>
-                    </tr>
-                    <tr>
-                        <td class="item">Pajak (${pajakPersen}%)</td>
-                        <td class="total">${transaksi.pajak.toLocaleString('id-ID')}</td>
-                    </tr>`;
+                receiptContent += `<tr><td class="item">Subtotal</td><td class="total">${transaksi.subtotal.toLocaleString('id-ID')}</td></tr><tr><td class="item">Pajak (${pajakPersen}%)</td><td class="total">${transaksi.pajak.toLocaleString('id-ID')}</td></tr>`;
             }
             
             receiptContent += `
-                <tr>
-                    <th class="item">TOTAL</th>
-                    <th class="total">${transaksi.total.toLocaleString('id-ID')}</th>
-                </tr>
-                <tr>
-                    <td class="item">METODE</td>
-                    <td class="total">${transaksi.metode}</td>
-                </tr>
-                <tr>
-                    <td class="item">BAYAR</td>
-                    <td class="total">${transaksi.bayar.toLocaleString('id-ID')}</td>
-                </tr>
-                <tr>
-                    <td class="item">KEMBALI</td>
-                    <td class="total">${transaksi.kembali.toLocaleString('id-ID')}</td>
-                </tr>
-                </tfoot>
-            </table>
-            <div class="receipt-footer">
-                <p>Terima Kasih!</p>
-            </div>`;
+                <tr><th class="item">TOTAL</th><th class="total">${transaksi.total.toLocaleString('id-ID')}</th></tr>
+                <tr><td class="item">METODE</td><td class="total">${transaksi.metode}</td></tr>
+                <tr><td class="item">BAYAR</td><td class="total">${transaksi.bayar.toLocaleString('id-ID')}</td></tr>
+                <tr><td class="item">KEMBALI</td><td class="total">${transaksi.kembali.toLocaleString('id-ID')}</td></tr>
+                </tfoot></table><div class="receipt-footer"><p>Terima Kasih!</p></div>`;
 
             const printWindow = window.open('', 'PRINT', 'height=600,width=300');
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Struk</title>
-                        <link rel="stylesheet" href="print.css">
-                    </head>
-                    <body>${receiptContent}</body>
-                </html>
-            `);
+            printWindow.document.write(`<html><head><title>Struk</title><link rel="stylesheet" href="print.css"></head><body>${receiptContent}</body></html>`);
             printWindow.document.close();
             printWindow.focus();
             setTimeout(() => {
@@ -896,7 +842,6 @@ document.addEventListener('DOMContentLoaded', () => {
         performDBAction("transaksi", "readonly", "getAll", null, (data) => {
             const filteredByDate = data.filter(r => {
                 if (!filterDateValue) return true;
-                // PERBAIKAN: Parsing tanggal dari ISO string agar lebih andal
                 if (!r.waktu || typeof r.waktu !== 'string') return false;
                 return r.waktu.slice(0, 10) === filterDateValue;
             });
@@ -905,10 +850,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const reportSummary = document.getElementById("report-summary");
             
             if (reportSummary) {
-                reportSummary.innerHTML = `
-                    <p>Total Transaksi: ${filteredByDate.length}</p>
-                    <p>Total Penjualan: Rp ${totalPenjualan.toLocaleString('id-ID')}</p>
-                `;
+                reportSummary.innerHTML = `<p>Total Transaksi: ${filteredByDate.length}</p><p>Total Penjualan: Rp ${totalPenjualan.toLocaleString('id-ID')}</p>`;
             }
 
             renderTable('laporan', filteredByDate.sort((a,b) => new Date(b.waktu) - new Date(a.waktu)), transaksi => {
@@ -934,7 +876,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!container) return;
         
         container.innerHTML = '';
-        const itemsPerPage = state[containerId.split('-')[0]].itemsPerPage;
+        // Menggunakan state yang sesuai berdasarkan containerId
+        const module = containerId.split('-')[0];
+        const itemsPerPage = state[module].itemsPerPage;
         const totalPages = Math.ceil(totalItems / itemsPerPage);
 
         if (totalPages <= 1) return;
@@ -969,7 +913,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return alert(`Tidak ada data untuk diekspor pada modul ${module}.`);
             }
             
-            // Urutkan data laporan berdasarkan tanggal terbaru
             if(module === 'laporan') {
                 allData.sort((a,b) => new Date(b.waktu) - new Date(a.waktu));
             }
@@ -978,12 +921,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'produk':
                     title = "Laporan Daftar Produk";
                     head = [['Nama Produk', 'Kategori', 'HPP (Rp)', 'Harga Jual (Rp)']];
-                    bodyData = allData.map(p => [
-                        p.nama, 
-                        p.kategori || 'lainnya', 
-                        p.hpp ? p.hpp.toLocaleString('id-ID') : '-', 
-                        p.hargaJual.toLocaleString('id-ID')
-                    ]);
+                    bodyData = allData.map(p => [ p.nama, p.kategori || 'lainnya', p.hpp ? p.hpp.toLocaleString('id-ID') : '-', p.hargaJual.toLocaleString('id-ID') ]);
                     break;
                 case 'inventaris':
                     title = "Laporan Stok Inventaris";
@@ -993,13 +931,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'laporan':
                     title = "Laporan Penjualan";
                     head = [['Waktu', 'ID Transaksi', 'Items', 'Metode', 'Total (Rp)']];
-                    bodyData = allData.map(t => [
-                        new Date(t.waktu).toLocaleString('id-ID'),
-                        t.id,
-                        t.items.map(i => `${i.nama}(${i.qty})`).join(', '),
-                        t.metode,
-                        t.total.toLocaleString('id-ID')
-                    ]);
+                    bodyData = allData.map(t => [ new Date(t.waktu).toLocaleString('id-ID'), t.id, t.items.map(i => `${i.nama}(${i.qty})`).join(', '), t.metode, t.total.toLocaleString('id-ID') ]);
                     break;
             }
 
