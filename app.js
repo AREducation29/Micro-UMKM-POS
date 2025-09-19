@@ -286,7 +286,8 @@ document.addEventListener('DOMContentLoaded', () => {
         performDBAction("inventaris", "readwrite", "get", nama, (existingItem) => {
             let finalJumlah = jumlah;
             if (existingItem) {
-                finalJumlah += existingItem.jumlah;
+                // PERBAIKAN: Pastikan nilai yang ada adalah angka sebelum menambahkan
+                finalJumlah += (parseFloat(existingItem.jumlah) || 0);
             }
             const dataToStore = { nama, jumlah: finalJumlah, satuan, supplier };
             performDBAction("inventaris", "readwrite", "put", dataToStore, () => {
@@ -298,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     satuan: satuan,
                     supplier: supplier,
                     catatan: 'Stok masuk',
-                    tanggal: new Date().toLocaleString('id-ID')
+                    tanggal: new Date().toISOString() // Menggunakan ISO string
                 };
                 performDBAction("riwayatStok", "readwrite", "add", riwayatData, () => {
                     showToast(`Stok "${nama}" berhasil diperbarui.`);
@@ -338,11 +339,12 @@ document.addEventListener('DOMContentLoaded', () => {
         performDBAction("inventaris", "readwrite", "get", nama, (existingItem) => {
             if (!existingItem) return;
             
-            if (existingItem.jumlah < jumlah) {
-                return alert(`Jumlah stok keluar melebihi stok yang tersedia (${existingItem.jumlah} ${existingItem.satuan}).`);
+            const stokSaatIni = parseFloat(existingItem.jumlah) || 0;
+            if (stokSaatIni < jumlah) {
+                return alert(`Jumlah stok keluar melebihi stok yang tersedia (${stokSaatIni} ${existingItem.satuan}).`);
             }
             
-            const finalJumlah = existingItem.jumlah - jumlah;
+            const finalJumlah = stokSaatIni - jumlah;
             const dataToStore = { 
                 nama: existingItem.nama, 
                 jumlah: finalJumlah, 
@@ -358,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     jumlah: jumlah,
                     satuan: existingItem.satuan,
                     catatan: catatan || 'Stok keluar',
-                    tanggal: new Date().toLocaleString('id-ID')
+                    tanggal: new Date().toISOString() // Menggunakan ISO string
                 };
                 performDBAction("riwayatStok", "readwrite", "add", riwayatData, () => {
                     showToast(`Stok "${nama}" berhasil dikurangi.`);
@@ -398,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 riwayatItem.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal)).forEach(item => {
                     tableHTML += `
                         <tr>
-                            <td>${item.tanggal}</td>
+                            <td>${new Date(item.tanggal).toLocaleString('id-ID')}</td>
                             <td class="${item.jenis === 'masuk' ? 'stock-in' : 'stock-out'}">${item.jenis === 'masuk' ? 'Masuk' : 'Keluar'}</td>
                             <td>${item.jumlah} ${item.satuan}</td>
                             <td>${item.catatan || '-'}</td>
@@ -653,7 +655,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // PERBAIKAN: Fungsi baru untuk mereset UI kasir tanpa konfirmasi
     function resetKasirUI() {
         cart = [];
         document.getElementById("jumlahBayar").value = '';
@@ -671,7 +672,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // PERBAIKAN: Fungsi simpan transaksi diperbaiki
     function simpanTransaksi() {
         if (cart.length === 0) return alert("Keranjang masih kosong!");
         
@@ -687,7 +687,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const transaksiRecord = {
             id: `trx-${Date.now()}`,
-            waktu: new Date().toLocaleString('id-ID'),
+            // PERBAIKAN: Menyimpan waktu dalam format ISO standar
+            waktu: new Date().toISOString(),
             items: cart,
             metode: paymentMethod,
             subtotal: subtotal,
@@ -700,13 +701,12 @@ document.addEventListener('DOMContentLoaded', () => {
         performDBAction("transaksi", "readwrite", "put", transaksiRecord, () => {
             showToast("Transaksi berhasil disimpan.");
             cetakStruk(transaksiRecord);
-            resetKasirUI(); // Menggunakan fungsi reset baru, bukan batalTransaksi
+            resetKasirUI();
             generateReport();
         });
     }
     
     function cetakStruk(transaksi) {
-        // Get pengaturan toko untuk struk
         performDBAction("pengaturan", "readonly", "get", "toko", (pengaturan) => {
             const namaToko = pengaturan?.namaToko || "Toko Saya";
             const alamatToko = pengaturan?.alamatToko || "";
@@ -717,7 +717,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h3>${namaToko}</h3>
                     ${alamatToko ? `<p>${alamatToko}</p>` : ''}
                     ${teleponToko ? `<p>${teleponToko}</p>` : ''}
-                    <p>${transaksi.waktu}</p>
+                    <p>${new Date(transaksi.waktu).toLocaleString('id-ID')}</p>
                     <p>No: ${transaksi.id}</p>
                 </div>
                 <table class="receipt-items">
@@ -896,8 +896,9 @@ document.addEventListener('DOMContentLoaded', () => {
         performDBAction("transaksi", "readonly", "getAll", null, (data) => {
             const filteredByDate = data.filter(r => {
                 if (!filterDateValue) return true;
-                const tgl = new Date(r.waktu.split(',')[0].split('/').reverse().join('-'));
-                return tgl.toISOString().slice(0, 10) === filterDateValue;
+                // PERBAIKAN: Parsing tanggal dari ISO string agar lebih andal
+                if (!r.waktu || typeof r.waktu !== 'string') return false;
+                return r.waktu.slice(0, 10) === filterDateValue;
             });
             
             const totalPenjualan = filteredByDate.reduce((sum, t) => sum + t.total, 0);
@@ -910,11 +911,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }
 
-            renderTable('laporan', filteredByDate, transaksi => {
+            renderTable('laporan', filteredByDate.sort((a,b) => new Date(b.waktu) - new Date(a.waktu)), transaksi => {
                 const itemsHtml = transaksi.items.map(i => `${i.nama}(${i.qty})`).join(', ');
                 return `
                     <tr>
-                        <td>${transaksi.waktu}</td>
+                        <td>${new Date(transaksi.waktu).toLocaleString('id-ID')}</td>
                         <td>${transaksi.id}</td>
                         <td>${itemsHtml}</td>
                         <td>${transaksi.metode}</td>
@@ -967,6 +968,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!allData || allData.length === 0) {
                 return alert(`Tidak ada data untuk diekspor pada modul ${module}.`);
             }
+            
+            // Urutkan data laporan berdasarkan tanggal terbaru
+            if(module === 'laporan') {
+                allData.sort((a,b) => new Date(b.waktu) - new Date(a.waktu));
+            }
 
             switch(module) {
                 case 'produk':
@@ -988,7 +994,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     title = "Laporan Penjualan";
                     head = [['Waktu', 'ID Transaksi', 'Items', 'Metode', 'Total (Rp)']];
                     bodyData = allData.map(t => [
-                        t.waktu,
+                        new Date(t.waktu).toLocaleString('id-ID'),
                         t.id,
                         t.items.map(i => `${i.nama}(${i.qty})`).join(', '),
                         t.metode,
@@ -1023,3 +1029,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 });
+
