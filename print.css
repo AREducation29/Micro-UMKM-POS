@@ -1,13 +1,73 @@
 @media print {
   body {
-    width: 58mm;
-    font-family: monospace;
-    font-size: 12px;
+    width: 58mm; /* Ukuran kertas thermal standar */
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 10pt;
     margin: 0;
+    padding: 3mm;
+    color: #000;
+    background: white;
   }
-  .screen-only { display: none; }
-  .receipt { width: 100%; }
-  .receipt-header { text-align: center; margin-bottom: 10px; }
-  .receipt-items td, .receipt-totals td { padding: 2px 0; }
-  .receipt-footer { text-align: center; margin-top: 10px; }
+  
+  .screen-only {
+    display: none;
+  }
+  
+  .receipt {
+    width: 100%;
+    margin: 0 auto;
+  }
+  
+  .receipt-header, .receipt-footer {
+    text-align: center;
+  }
+
+  .receipt-header h3 {
+    margin: 0;
+    font-size: 14pt;
+    font-weight: bold;
+  }
+
+  .receipt-header p {
+    margin: 2px 0 10px 0;
+    font-size: 8pt;
+  }
+  
+  .receipt-items {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+  }
+  
+  .receipt-items th, .receipt-items td {
+    padding: 2px 0;
+    border-bottom: 1px dashed #555;
+  }
+  
+  .receipt-items thead th {
+    border-bottom: 1px solid #000;
+    text-align: left;
+  }
+  
+  .receipt-items tfoot th {
+      border-top: 1px solid #000;
+      text-align: left;
+  }
+
+  .receipt-items .item {
+    text-align: left;
+  }
+
+  .receipt-items .total {
+    text-align: right;
+  }
+  
+  .receipt-items small {
+      font-size: 8pt;
+  }
+
+  .receipt-footer {
+    margin-top: 15px;
+    font-style: italic;
+  }
 }
