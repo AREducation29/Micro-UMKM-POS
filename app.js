@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showTab('kasir');
         updateClock();
         setInterval(updateClock, 1000);
+        loadPengaturan();
         
         // Load initial produk list for kasir
         loadProdukForKasirList();
@@ -131,14 +132,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Event Listeners Setup ---
     function setupEventListeners() {
-        // Sidebar Toggle
-        document.getElementById('toggle-sidebar').addEventListener('click', () => {
-            document.body.classList.toggle('sidebar-open');
-        });
-        
-        document.getElementById('toggle-sidebar-mobile').addEventListener('click', () => {
-            document.body.classList.toggle('sidebar-open');
-        });
+        // PERBAIKAN: Sidebar Toggle untuk Desktop dan Mobile
+        const toggleSidebar = () => document.body.classList.toggle('sidebar-open');
+        document.getElementById('toggle-sidebar').addEventListener('click', toggleSidebar);
+        document.getElementById('toggle-sidebar-mobile').addEventListener('click', toggleSidebar);
+
+        // PERBAIKAN: Menutup sidebar ketika overlay di klik
+        const overlay = document.querySelector('.sidebar-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+        }
 
         // Forms
         document.getElementById("inventaris-form").addEventListener("submit", handleInventarisForm);
@@ -218,26 +221,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Generic DB Operations ---
     function performDBAction(storeName, mode, action, data, callback) {
-        const transaction = db.transaction(storeName, mode);
-        const store = transaction.objectStore(storeName);
-        let request;
+        try {
+            const transaction = db.transaction(storeName, mode);
+            const store = transaction.objectStore(storeName);
+            let request;
 
-        switch (action) {
-            case 'put': request = store.put(data); break;
-            case 'get': request = store.get(data); break;
-            case 'getAll': request = store.getAll(); break;
-            case 'delete': request = store.delete(data); break;
-            case 'add': request = store.add(data); break;
+            switch (action) {
+                case 'put': request = store.put(data); break;
+                case 'get': request = store.get(data); break;
+                case 'getAll': request = store.getAll(); break;
+                case 'delete': request = store.delete(data); break;
+                case 'add': request = store.add(data); break;
+            }
+
+            transaction.oncomplete = () => {
+                if (callback && typeof request.result !== 'undefined') callback(request.result);
+                else if (callback) callback(true);
+            };
+            transaction.onerror = (e) => {
+                console.error(`DB Error on ${storeName}:`, e.target.error);
+                if (callback) callback(null, e.target.error);
+            };
+        } catch (error) {
+            console.error("Error performing DB action:", error);
         }
-
-        transaction.oncomplete = () => {
-            if (callback && typeof request.result !== 'undefined') callback(request.result);
-            else if (callback) callback(true);
-        };
-        transaction.onerror = (e) => {
-            console.error(`DB Error on ${storeName}:`, e.target.error);
-            if (callback) callback(null, e.target.error);
-        };
     }
 
     // ===============================================
@@ -255,6 +262,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelector(`.nav-button[onclick="showTab('${id}')"] .sidebar-text`).textContent;
         
         if(id === 'kasir') loadProdukForKasirList();
+        
+        // Close sidebar on mobile after selecting a tab
+        if (window.innerWidth < 768) {
+            document.body.classList.remove('sidebar-open');
+        }
     }
     
     // ===============================================
@@ -526,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             if(filtered.length === 0) {
-                container.innerHTML = '<p class="text-center">Produk tidak ditemukan.</p>';
+                container.innerHTML = '<p style="text-align: center; width: 100%;">Produk tidak ditemukan.</p>';
                 return;
             }
             
@@ -575,7 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = "";
         
         if (cart.length === 0) {
-            container.innerHTML = '<p class="text-center">Keranjang kosong</p>';
+            container.innerHTML = '<p style="text-align: center;">Keranjang kosong</p>';
             updateCartSummary();
             return;
         }
@@ -618,7 +630,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function calculateChange() {
         const totalElement = document.getElementById("total");
-        const total = parseFloat(totalElement.textContent.replace('Rp', '').replace(/\./g, '')) || 0;
+        const total = parseFloat(totalElement.textContent.replace(/[Rp. ]/g, '').replace(',', '.')) || 0;
         const jumlahBayar = parseFloat(document.getElementById("jumlahBayar").value) || 0;
         const kembalian = jumlahBayar - total;
         const uangKembaliInput = document.getElementById("uangKembali");
@@ -636,29 +648,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.classList.contains('quick-cash-btn')) {
             const value = parseFloat(e.target.dataset.value);
             const bayarInput = document.getElementById('jumlahBayar');
-            const currentValue = parseFloat(bayarInput.value) || 0;
-            const totalElement = document.getElementById("total");
-            const total = parseFloat(totalElement.textContent.replace('Rp', '').replace(/\./g, '')) || 0;
-            
-            // If input is empty or less than total, set to button value, otherwise add
-            if (currentValue < total) {
-                bayarInput.value = value;
-            } else {
-                bayarInput.value = currentValue + value;
-            }
-            
+            bayarInput.value = (parseFloat(bayarInput.value) || 0) + value;
             calculateChange();
         }
     }
 
+    // PERBAIKAN: Fungsi baru untuk mereset UI kasir tanpa konfirmasi
+    function resetKasirUI() {
+        cart = [];
+        document.getElementById("jumlahBayar").value = '';
+        document.getElementById('pajak-toggle').checked = false;
+        document.getElementById('pajak-persen').style.display = 'none';
+        document.getElementById('pajak-row').style.display = 'none';
+        pajakPersen = 0;
+        updateCart(); // Ini sudah termasuk updateCartSummary
+    }
+    
     function batalTransaksi() {
         if (confirm("Yakin ingin membatalkan transaksi ini?")) {
-            cart = [];
-            document.getElementById("jumlahBayar").value = '';
-            updateCart();
+            resetKasirUI();
+            showToast("Transaksi dibatalkan.");
         }
     }
 
+    // PERBAIKAN: Fungsi simpan transaksi diperbaiki
     function simpanTransaksi() {
         if (cart.length === 0) return alert("Keranjang masih kosong!");
         
@@ -685,8 +698,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         performDBAction("transaksi", "readwrite", "put", transaksiRecord, () => {
+            showToast("Transaksi berhasil disimpan.");
             cetakStruk(transaksiRecord);
-            batalTransaksi();
+            resetKasirUI(); // Menggunakan fungsi reset baru, bukan batalTransaksi
             generateReport();
         });
     }
@@ -773,8 +787,13 @@ document.addEventListener('DOMContentLoaded', () => {
             printWindow.document.close();
             printWindow.focus();
             setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
+                try {
+                    printWindow.print();
+                    printWindow.close();
+                } catch(e) {
+                    console.error("Could not print receipt:", e);
+                    printWindow.close();
+                }
             }, 250);
         });
     }
