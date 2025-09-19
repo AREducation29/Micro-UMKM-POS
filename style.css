@@ -67,7 +67,6 @@ body {
 }
 body.sidebar-open .sidebar { transform: translateX(0); }
 
-/* Ditambahkan: Overlay untuk menutup sidebar */
 .sidebar-overlay {
   display: none;
   position: fixed;
@@ -76,7 +75,7 @@ body.sidebar-open .sidebar { transform: translateX(0); }
   width: 100%;
   height: 100%;
   background: rgba(0,0,0,0.5);
-  z-index: 1999; /* Muncul di bawah sidebar */
+  z-index: 1999; 
 }
 
 .sidebar-header { 
@@ -115,11 +114,11 @@ body.sidebar-open .sidebar { transform: translateX(0); }
   background: none; 
   border: none; 
   cursor: pointer; 
-  text-align: left; /* Perbaikan: Memastikan teks rata kiri */
-  justify-content: flex-start; /* Perbaikan: Memastikan ikon dan teks mulai dari kiri */
+  text-align: left; 
+  justify-content: flex-start; 
   transition: background-color 0.2s, color 0.2s;
   color: var(--text-color);
-  width: 100%; /* Memastikan tombol memenuhi lebar nav */
+  width: 100%; 
 }
 .nav-button i { font-size: 1.2rem; width: 25px; text-align: center; }
 .nav-button.active, .nav-button:hover { background-color: var(--primary-color); color: white; }
@@ -354,7 +353,7 @@ button:hover { transform: translateY(-2px); }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 15px;
-  max-height: 400px;
+  min-height: 400px; /* Memberi tinggi minimum */
   overflow-y: auto;
   padding: 5px;
   margin-bottom: 1rem;
@@ -644,6 +643,12 @@ th {
   gap: 1rem; 
   margin-top: 1.5rem; 
 }
+/* Ditambahkan: Style untuk paginasi kasir */
+.kasir-pagination-footer {
+  margin-top: 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
 .pagination-controls { 
   display: flex; 
   justify-content: center; 
@@ -769,34 +774,29 @@ input[readonly] {
 }
 
 /* Responsive adjustments */
-
-/* Perbaikan untuk Mobile (kurang dari 768px) */
 @media (max-width: 767px) {
   .produk-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    min-height: 350px; /* Sesuaikan untuk mobile */
   }
   
   .quick-cash-buttons {
-    grid-template-columns: repeat(3, 1fr); /* Dibuat 3 kolom agar lebih rapi */
+    grid-template-columns: repeat(3, 1fr);
   }
   
   .action-buttons {
     grid-template-columns: 1fr;
   }
 
-  /* Perbaikan: Tampilkan overlay saat sidebar terbuka di mobile */
   body.sidebar-open .sidebar-overlay {
     display: block;
   }
   
-  /* Perbaikan: Sembunyikan header desktop di mobile */
    .main-header {
       display: flex;
   }
 }
 
-
-/* Tablet and Up (768px) */
 @media (min-width: 768px) {
   .sidebar { transform: translateX(0); width: var(--sidebar-width-collapsed); }
   body.sidebar-open .sidebar { width: var(--sidebar-width); }
@@ -811,7 +811,6 @@ input[readonly] {
   .main-content { margin-left: var(--sidebar-width-collapsed); transition: margin-left var(--transition-speed) ease; }
   body.sidebar-open .main-content { margin-left: var(--sidebar-width); }
   
-  /* Perbaikan: Sembunyikan header mobile di desktop */
   .main-header { display: none; }
   
   .main-content { padding: 1.5rem; padding-top: 1.5rem; }
@@ -820,8 +819,8 @@ input[readonly] {
   .pagination-footer { flex-direction: row; justify-content: space-between; }
 }
 
-/* Desktop and Up (992px) */
 @media (min-width: 992px) { 
   .main-content { padding: 2rem; } 
   .card { padding: 1.5rem; } 
 }
+
