@@ -67,6 +67,18 @@ body {
 }
 body.sidebar-open .sidebar { transform: translateX(0); }
 
+/* Ditambahkan: Overlay untuk menutup sidebar */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 1999; /* Muncul di bawah sidebar */
+}
+
 .sidebar-header { 
   display: flex; 
   align-items: center; 
@@ -103,9 +115,11 @@ body.sidebar-open .sidebar { transform: translateX(0); }
   background: none; 
   border: none; 
   cursor: pointer; 
-  text-align: left; 
+  text-align: left; /* Perbaikan: Memastikan teks rata kiri */
+  justify-content: flex-start; /* Perbaikan: Memastikan ikon dan teks mulai dari kiri */
   transition: background-color 0.2s, color 0.2s;
   color: var(--text-color);
+  width: 100%; /* Memastikan tombol memenuhi lebar nav */
 }
 .nav-button i { font-size: 1.2rem; width: 25px; text-align: center; }
 .nav-button.active, .nav-button:hover { background-color: var(--primary-color); color: white; }
@@ -747,7 +761,7 @@ input[readonly] {
   border-radius: 4px;
   opacity: 0;
   transition: opacity 0.3s;
-  z-index: 1000;
+  z-index: 4000;
 }
 
 .toast.show {
@@ -755,19 +769,32 @@ input[readonly] {
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+
+/* Perbaikan untuk Mobile (kurang dari 768px) */
+@media (max-width: 767px) {
   .produk-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
   
   .quick-cash-buttons {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr); /* Dibuat 3 kolom agar lebih rapi */
   }
   
   .action-buttons {
     grid-template-columns: 1fr;
   }
+
+  /* Perbaikan: Tampilkan overlay saat sidebar terbuka di mobile */
+  body.sidebar-open .sidebar-overlay {
+    display: block;
+  }
+  
+  /* Perbaikan: Sembunyikan header desktop di mobile */
+   .main-header {
+      display: flex;
+  }
 }
+
 
 /* Tablet and Up (768px) */
 @media (min-width: 768px) {
@@ -783,7 +810,10 @@ input[readonly] {
 
   .main-content { margin-left: var(--sidebar-width-collapsed); transition: margin-left var(--transition-speed) ease; }
   body.sidebar-open .main-content { margin-left: var(--sidebar-width); }
+  
+  /* Perbaikan: Sembunyikan header mobile di desktop */
   .main-header { display: none; }
+  
   .main-content { padding: 1.5rem; padding-top: 1.5rem; }
   .toolbar { flex-direction: row; }
   .search-input { flex-grow: 1; }
