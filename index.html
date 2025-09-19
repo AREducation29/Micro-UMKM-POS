@@ -3,62 +3,329 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>POS Warung Makan</title>
+  <title>Aplikasi Kasir (POS) UMKM Pro+</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="print.css" media="print">
   <link rel="manifest" href="manifest.json">
-  <script defer src="app.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
-  <header>
-    <h1>POS Warung Makan</h1>
-    <nav>
-      <button onclick="showTab('kasir')">Kasir</button>
-      <button onclick="showTab('laporan')">Laporan</button>
+  <aside class="sidebar">
+    <header class="sidebar-header">
+      <h1 class="sidebar-title"><i class="fas fa-cash-register"></i> <span class="sidebar-text">POS UMKM</span></h1>
+      <button id="toggle-sidebar" class="toggle-btn"><i class="fas fa-chevron-left"></i></button>
+    </header>
+    <nav class="sidebar-nav">
+      <button onclick="showTab('kasir')" class="nav-button active"><i class="fas fa-dolly"></i> <span class="sidebar-text">Kasir</span></button>
+      <button onclick="showTab('produk')" class="nav-button"><i class="fas fa-cookie-bite"></i> <span class="sidebar-text">Manajemen Produk</span></button>
+      <button onclick="showTab('inventaris')" class="nav-button"><i class="fas fa-boxes-stacked"></i> <span class="sidebar-text">Manajemen Inventaris</span></button>
+      <button onclick="showTab('laporan')" class="nav-button"><i class="fas fa-chart-line"></i> <span class="sidebar-text">Laporan</span></button>
+      <button onclick="showTab('pengaturan')" class="nav-button"><i class="fas fa-cog"></i> <span class="sidebar-text">Pengaturan</span></button>
     </nav>
-  </header>
+    <div class="theme-switch-wrapper">
+      <label class="theme-switch" for="checkbox">
+        <input type="checkbox" id="checkbox" />
+        <div class="slider round"></div>
+      </label>
+      <span class="theme-text">Mode Gelap</span>
+    </div>
+  </aside>
 
-  <main>
+  <main class="main-content">
+    <header class="main-header">
+       <button id="toggle-sidebar-mobile" class="toggle-btn-mobile"><i class="fas fa-bars"></i></button>
+       <h2 id="main-header-title">Kasir</h2>
+       <div class="current-time" id="current-time"></div>
+    </header>
+    
+    <!-- TAB KASIR -->
     <section id="kasir" class="tab active">
-      <h2>Transaksi</h2>
-      <form id="transaksi-form">
-        <input type="text" id="namaBarang" placeholder="Nama Barang" required>
-        <input type="number" id="hargaBarang" placeholder="Harga" required>
-        <input type="number" id="qtyBarang" placeholder="Qty" value="1" required>
-        <input type="number" id="ppnBarang" placeholder="PPN (%)" value="0">
-        <button type="submit">Tambah</button>
-      </form>
-
-      <table id="tabel-transaksi">
-        <thead>
-          <tr><th>Nama</th><th>Qty</th><th>Harga</th><th>PPN</th><th>Total</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <div id="summary">
-        <p>Subtotal: <span id="subtotal">0</span></p>
-        <p>Total PPN: <span id="totalPpn">0</span></p>
-        <p><b>Total: <span id="grandTotal">0</span></b></p>
+      <div class="kasir-grid">
+        <div class="kasir-main">
+          <div class="card">
+            <h3><i class="fas fa-list-ul"></i> Daftar Produk</h3>
+            
+            <div class="kategori-buttons">
+              <button class="kategori-btn active" data-kategori="semua">Semua</button>
+              <button class="kategori-btn" data-kategori="makanan">Makanan</button>
+              <button class="kategori-btn" data-kategori="minuman">Minuman</button>
+              <button class="kategori-btn" data-kategori="snack">Snack</button>
+            </div>
+            
+            <div class="search-container">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" id="search-produk-kasir" class="search-input" placeholder="Cari produk...">
+            </div>
+            
+            <div class="produk-grid" id="produk-list-kasir">
+              <!-- Product items will be injected here by JS -->
+            </div>
+          </div>
+        </div>
+        
+        <div class="kasir-sidebar">
+          <div class="card">
+            <h3><i class="fas fa-list-alt"></i> Keranjang</h3>
+            
+            <div class="cart-items" id="cart-items-container">
+              <!-- Cart items will be injected here by JS -->
+            </div>
+            
+            <div class="cart-summary">
+              <div class="summary-row">
+                <span>Subtotal:</span>
+                <span id="subtotal">Rp 0</span>
+              </div>
+              
+              <div class="pajak-options">
+                <span>Tambahkan Pajak:</span>
+                <label class="pajak-toggle">
+                  <input type="checkbox" id="pajak-toggle">
+                  <span class="pajak-slider"></span>
+                </label>
+                <input type="number" id="pajak-persen" class="pajak-input" placeholder="%" value="10" min="0" max="100">
+              </div>
+              
+              <div class="summary-row" id="pajak-row" style="display: none;">
+                <span>Pajak:</span>
+                <span id="pajak-value">Rp 0</span>
+              </div>
+              
+              <div class="summary-row grand-total">
+                <span>Total:</span>
+                <span id="total">Rp 0</span>
+              </div>
+            </div>
+            
+            <div class="payment-section">
+              <div class="form-group">
+                <label for="payment-method">Metode Pembayaran</label>
+                <select id="payment-method">
+                  <option value="TUNAI">TUNAI</option>
+                  <option value="QRIS">QRIS / NON-TUNAI</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="jumlahBayar">Jumlah Bayar (Rp)</label>
+                <input type="number" id="jumlahBayar" placeholder="Masukkan jumlah uang pelanggan">
+              </div>
+              
+              <div class="quick-cash-buttons">
+                <button type="button" class="quick-cash-btn" data-value="1000">1RB</button>
+                <button type="button" class="quick-cash-btn" data-value="2000">2RB</button>
+                <button type="button" class="quick-cash-btn" data-value="5000">5RB</button>
+                <button type="button" class="quick-cash-btn" data-value="10000">10RB</button>
+                <button type="button" class="quick-cash-btn" data-value="20000">20RB</button>
+                <button type="button" class="quick-cash-btn" data-value="50000">50RB</button>
+                <button type="button" class="quick-cash-btn" data-value="100000">100RB</button>
+              </div>
+              
+              <div class="form-group">
+                <label for="uangKembali">Uang Kembali (Rp)</label>
+                <input type="text" id="uangKembali" placeholder="Kembalian akan muncul di sini" readonly>
+              </div>
+            </div>
+            
+            <div class="action-buttons">
+              <button id="batal-transaksi" class="btn-danger"><i class="fas fa-times-circle"></i> Batal Transaksi</button>
+              <button id="simpan-transaksi" class="btn-save"><i class="fas fa-print"></i> Simpan & Cetak Struk</button>
+            </div>
+          </div>
+        </div>
       </div>
-      <button onclick="simpanTransaksi()">Simpan & Cetak Struk</button>
-
-      <div id="receipt" class="receipt screen-only"></div>
     </section>
 
-    <section id="laporan" class="tab">
-      <h2>Laporan Penjualan</h2>
-      <label>Pilih Tanggal: <input type="date" id="filterDate"></label>
-      <button onclick="generateReport()">Tampilkan</button>
-      <button onclick="exportCSV()">Export CSV</button>
+    <!-- TAB MANAJEMEN PRODUK -->
+    <section id="produk" class="tab">
+      <div class="card">
+        <h3><i class="fas fa-plus-circle"></i> Tambah Produk Baru</h3>
+        <form id="produk-form">
+            <label for="namaProduk">Nama Produk</label>
+            <input type="text" id="namaProduk" placeholder="Contoh: Kopi Susu Gula Aren" required>
+            <label for="kategoriProduk">Kategori</label>
+            <select id="kategoriProduk" required>
+              <option value="makanan">Makanan</option>
+              <option value="minuman">Minuman</option>
+              <option value="snack">Snack</option>
+              <option value="lainnya">Lainnya</option>
+            </select>
+            <label for="hppProduk">Harga Pokok Penjualan (HPP)</label>
+            <input type="number" id="hppProduk" placeholder="Contoh: 8000" required>
+            <label for="hargaJualProduk">Harga Jual</label>
+            <input type="number" id="hargaJualProduk" placeholder="Contoh: 18000" required>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Simpan Produk</button>
+                <button type="button" id="clear-produk-form" class="btn-danger"><i class="fas fa-times"></i> Batal</button>
+            </div>
+        </form>
+      </div>
+      <div class="card">
+        <h3><i class="fas fa-tasks"></i> Daftar & Manajemen Produk</h3>
+        <div class="toolbar">
+            <input type="text" id="search-produk" class="search-input" placeholder="Cari nama produk...">
+            <button id="export-produk-pdf" class="btn-secondary"><i class="fas fa-file-pdf"></i> Ekspor PDF</button>
+        </div>
+        <div class="table-wrapper">
+            <table id="tabel-produk">
+                <thead>
+                    <tr><th>Nama Produk</th><th>Kategori</th><th>HPP</th><th>Harga Jual</th><th>Aksi</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="pagination-footer">
+            <div class="pagination-controls" id="produk-pagination"></div>
+            <div class="pagination-options">
+                <select id="produk-items-per-page">
+                    <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="custom">Custom</option>
+                </select>
+                <span>item/hal</span>
+            </div>
+        </div>
+      </div>
+    </section>
 
-      <div id="report-summary"></div>
-      <table id="report-table">
-        <thead>
-          <tr><th>Waktu</th><th>Barang</th><th>Qty</th><th>Harga</th><th>Subtotal</th><th>PPN</th><th>Total</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    <!-- TAB MANAJEMEN INVENTARIS -->
+    <section id="inventaris" class="tab">
+       <div class="card">
+        <h3><i class="fas fa-plus-circle"></i> Catat Stok Masuk</h3>
+        <form id="inventaris-form">
+            <label for="namaItem">Nama Item</label>
+            <input type="text" id="namaItem" placeholder="Contoh: Biji Kopi, Susu UHT" required>
+            <label for="jumlahItem">Jumlah Masuk</label>
+            <input type="number" step="any" id="jumlahItem" min="0.01" placeholder="Jumlah stok yang ditambahkan" required>
+             <label for="supplierItem">Supplier (Opsional)</label>
+            <input type="text" id="supplierItem" placeholder="Nama supplier atau toko">
+            <label for="satuanItem">Satuan</label>
+            <input type="text" id="satuanItem" placeholder="Contoh: kg, liter, pcs" required>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Simpan Stok Masuk</button>
+                <button type="button" id="clear-inventaris-form" class="btn-danger"><i class="fas fa-times"></i> Batal</button>
+            </div>
+        </form>
+      </div>
+      <div class="card">
+        <h3><i class="fas fa-tasks"></i> Daftar & Manajemen Inventaris</h3>
+        <div class="toolbar">
+            <input type="text" id="search-inventaris" class="search-input" placeholder="Cari nama item...">
+            <button id="export-inventaris-pdf" class="btn-secondary"><i class="fas fa-file-pdf"></i> Ekspor PDF</button>
+        </div>
+        <div class="table-wrapper">
+            <table id="tabel-inventaris">
+                <thead>
+                    <tr><th>Nama Item</th><th>Sisa Stok</th><th>Satuan</th><th>Aksi</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="pagination-footer">
+            <div class="pagination-controls" id="inventaris-pagination"></div>
+             <div class="pagination-options">
+                <select id="inventaris-items-per-page">
+                    <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="custom">Custom</option>
+                </select>
+                <span>item/hal</span>
+            </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB LAPORAN -->
+    <section id="laporan" class="tab">
+      <div class="card">
+        <h3><i class="fas fa-file-alt"></i> Laporan Penjualan</h3>
+        <div class="toolbar">
+          <input type="date" id="filterDate">
+          <button id="tampilkan-laporan" class="btn-secondary"><i class="fas fa-search"></i> Tampilkan</button>
+          <button id="export-laporan-pdf" class="btn-secondary"><i class="fas fa-file-pdf"></i> Ekspor PDF</button>
+        </div>
+        <div id="report-summary"></div>
+        <div class="table-wrapper">
+            <table id="report-table">
+              <thead>
+                <tr><th>Waktu</th><th>ID Transaksi</th><th>Item</th><th>Metode</th><th>Total</th><th>Aksi</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+        </div>
+        <div class="pagination-footer">
+            <div class="pagination-controls" id="laporan-pagination"></div>
+            <div class="pagination-options">
+                <select id="laporan-items-per-page">
+                    <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="custom">Custom</option>
+                </select>
+                <span>item/hal</span>
+            </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB PENGATURAN -->
+    <section id="pengaturan" class="tab">
+        <div class="card">
+            <h3><i class="fas fa-store"></i> Pengaturan Toko</h3>
+            <form id="pengaturan-form">
+                <label for="namaToko">Nama Toko</label>
+                <input type="text" id="namaToko" placeholder="Masukkan nama toko Anda" required>
+                <label for="alamatToko">Alamat Toko (Opsional)</label>
+                <input type="text" id="alamatToko" placeholder="Alamat akan tampil di struk">
+                <label for="teleponToko">No. Telepon/HP (Opsional)</label>
+                <input type="text" id="teleponToko" placeholder="Nomor kontak akan tampil di struk">
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Simpan Pengaturan</button>
+                </div>
+            </form>
+        </div>
     </section>
   </main>
+  
+  <!-- MODALS -->
+  <div id="edit-produk-modal" class="modal-overlay">
+      <div class="modal-content">
+          <header class="modal-header"><h3>Edit Produk</h3><button class="close-btn">&times;</button></header>
+          <form id="edit-produk-form">
+              <input type="hidden" id="edit-namaProduk-original">
+              <label>Nama Produk</label><input type="text" id="edit-namaProduk" required>
+              <label>Kategori</label>
+              <select id="edit-kategoriProduk" required>
+                <option value="makanan">Makanan</option>
+                <option value="minuman">Minuman</option>
+                <option value="snack">Snack</option>
+                <option value="lainnya">Lainnya</option>
+              </select>
+              <label>HPP (Rp)</label><input type="number" id="edit-hppProduk" required>
+              <label>Harga Jual (Rp)</label><input type="number" id="edit-hargaJualProduk" required>
+              <div class="form-actions"><button type="submit" class="btn-primary">Simpan Perubahan</button></div>
+          </form>
+      </div>
+  </div>
+
+  <div id="stok-keluar-modal" class="modal-overlay">
+      <div class="modal-content">
+          <header class="modal-header"><h3>Catat Stok Keluar</h3><button class="close-btn">&times;</button></header>
+          <form id="stok-keluar-form">
+              <input type="hidden" id="stok-keluar-namaItem">
+              <label>Nama Item</label><input type="text" id="stok-keluar-namaItem-display" readonly>
+              <label>Jumlah Keluar</label><input type="number" step="any" min="0.01" id="stok-keluar-jumlah" required>
+              <label>Catatan (Opsional)</label><input type="text" id="stok-keluar-catatan" placeholder="Contoh: Dipakai, Rusak">
+              <div class="form-actions"><button type="submit" class="btn-danger">Simpan Stok Keluar</button></div>
+          </form>
+      </div>
+  </div>
+
+  <div id="riwayat-stok-modal" class="modal-overlay">
+      <div class="modal-content modal-lg">
+          <header class="modal-header"><h3 id="riwayat-stok-title">Riwayat Stok</h3><button class="close-btn">&times;</button></header>
+          <div class="table-wrapper" id="riwayat-stok-container"></div>
+      </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
 </body>
 </html>
